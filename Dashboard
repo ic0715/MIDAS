@@ -1,0 +1,98 @@
+import processing.video.*;
+import processing.serial.*;
+import processing.net.*; 
+import java.awt.Frame;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.Cursor;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.ParallelScanOptions;
+
+import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+Movie mov;
+Movie mov2;
+Movie mov3;
+
+String ssum = " ";
+
+String userName = "midas";
+String database = "MIDASDB";
+char[] password = {
+  'm', 'i', 'd', 'a', 's'
+};
+
+MongoCredential credential = MongoCredential.createMongoCRCredential(userName, database, password);
+MongoClient mongoClient;
+
+
+void setup() {
+  fullScreen(P2D);
+  mov = new Movie(this, "ad1.mp4");
+  mov2 = new Movie(this, "ad2.mp4");
+  mov3 = new Movie(this, "ad3.mp4");
+  
+  try {
+    mongoClient = new MongoClient(new ServerAddress(), Arrays.asList(credential));
+  } 
+  catch (java.net.UnknownHostException e) {
+    System.err.println("Connection failed: " + e);
+  }
+
+  DB db = mongoClient.getDB("MIDASDB");
+
+  Set<String> colls = db.getCollectionNames();
+  for (String s : colls) {
+    System.out.println(s);
+  }
+  
+  DBCollection coll2 = db.getCollection("store_list");
+  DBCursor cursor2 = coll2.find();
+  
+  while (cursor2.hasNext ()) {
+    //커서의 이름중에 sum 값 컬럼 값만 출력
+    System.out.println(cursor2.next().get("sum"));
+  }
+  
+}
+
+void movieEvent(Movie m) {
+  m.read();
+}
+
+void draw() {
+  
+  DB db = mongoClient.getDB("MIDASDB");
+  DBCollection coll2 = db.getCollection("store_list");
+  DBCursor cursor2 = coll2.find();
+  
+
+  
+  while(cursor2.hasNext()){
+   ssum = cursor2.next().get("sum").toString();
+  }
+  
+  if(ssum.compareTo("75") >= 0){
+      mov.play();
+      image(mov, 0, 0, width, height);
+  }
+  
+  else if(ssum.compareTo("55") >= 0 && ssum.compareTo("75") < 0){
+      mov2.play();
+      image (mov2, 0, 0, width, height);
+  }
+  
+  else if(ssum.compareTo("35") >= 0 && ssum.compareTo("55") < 0){
+      mov3.play();
+      image (mov3, 0, 0, width, height);
+  }
+} 
