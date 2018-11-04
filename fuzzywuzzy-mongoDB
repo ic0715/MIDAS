@@ -1,0 +1,128 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep  6 20:05:12 2018
+
+@author: user
+"""
+import pandas as pd
+from pymongo import MongoClient
+from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
+
+def fuzzy_match(x, choices, scorer, cutoff):
+  return process.extractOne(x, choices = choices, scorer = scorer, score_cutoff= cutoff)[0]
+
+
+
+def _connect_mongo(host, port, username, password, db):
+    """ A util for making a connection to mongo """
+
+    if username and password:
+        mongo_uri = 'mongodb://%s:%s@%s:%s/%s' % (username, password, host, port, db)
+        conn = MongoClient(mongo_uri)
+    
+    else:
+        conn = MongoClient(host, port)
+    
+    return conn[db]
+
+def read_mongo(db, collection, query={}, host='localhost', port=27017, username=None, password=None, no_id = True):
+    """ Read from Mongo and Store into DataFrame """
+
+    # Connect to MongoDB
+    db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
+
+    # Make a query to the specific DB and Collection
+    cursor = db[collection].find(query)
+
+    # Expand the cursor and construct the DataFrame
+    df =  pd.DataFrame(list(cursor))
+
+    # Delete the _id
+    if no_id:
+        del df['_id']
+
+    return df
+
+
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+fuzzy_table = read_mongo('MIDASDB', 'fuzzy_table', {} ,'localhost', 27017, "midas", "midas")
+#fuzzy_table.to_csv('I:\\WinPython-64bit-3.6.1.0Qt5\\notebooks\\fuzzy다다다다.csv' ,
+# encoding='utf-8', index=False, quotechar="'", doublequote=True)
+#print(fuzzy_table)
+
+df1 = read_mongo('MIDASDB', 'store_list', {} ,'localhost', 27017, "midas", "midas")
+df1 = df1[['up','down', 'sum','grade','time']]
+
+
+#grade(등급) 부분만 추출해내기
+#등급을 4개씩 묶기
+a=[]
+y=[]
+x=[]
+for group in chunker(df1["grade"].tolist(), 4):
+    s=" ".join(group)
+    y.append(s)
+
+s=" ".join(df1["time"][0])
+x.append(s)
+y.extend(x)
+s= " ".join(y)
+a.append(s)
+
+
+
+#fuzzy_table의 actual값만 추출해서 저장하기
+fuzzy_actual =fuzzy_table[['Actual', 'time']].values.tolist()
+#print(fuzzy_actual)
+
+#fuzzy_table의 predict값만 추출해서 저장하기
+fuzzy_predict = fuzzy_table["Predict"].tolist()
+
+
+b=[]
+c=[]
+for i in range(len(fuzzy_actual)):
+    for j in range(2):
+        b.append(" ".join(fuzzy_actual[i][j]))
+        s=" ".join(b)
+
+
+for group in chunker(b,2):
+    s=" ".join(group)
+    c.append(s)
+
+
+#4개씩 묶은 등급과 fuzzy_table의 actual값을 비교
+compare=[]
+for i in range(len(c)):
+    compare.append(fuzz.ratio(a[0],c[i]))
+
+output_idx = compare.index(max(compare))
+
+
+
+#print
+print("\n"+"="*16 + "stored list table"+"="*16)
+print(df1)
+print("="*50+"\n")
+
+print("\n"+"="*18 + "grade grouping "+"="*17+"")
+print(a)
+print("="*50+"\n")
+
+
+print("="*23 + " silmilarity comparison result "+"="*23)
+
+for i in range(len(compare)):
+    print("%s       fuzzy_ratio result = %s" %(c[i], (compare[i]*0.01)))
+print("="*77+"\n")
+
+#print(compare)
+#print(compare.index(max(compare)))
+print("="*16 + "final result"+"="*16)
+print("predicted ratio = %.2f "%(compare[output_idx]*0.01))
+print("predicted grade = %s"%(fuzzy_predict[output_idx]))
+print("="*44)
