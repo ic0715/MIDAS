@@ -1,0 +1,196 @@
+import processing.serial.*;
+import processing.net.*; 
+import java.awt.Frame;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.Cursor;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.ParallelScanOptions;
+
+import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+PFont myFont;
+PImage img, img2;
+int x = 70; 
+int y = 500; 
+String data = " ";
+char[] var = { };
+String ssum = " ";
+String grade = " ";
+
+String userName = "midas";
+String database = "MIDASDB";
+char[] password = {
+  'm', 'i', 'd', 'a', 's'
+};
+
+
+MongoCredential credential = MongoCredential.createMongoCRCredential(userName, database, password);
+MongoClient mongoClient;
+
+
+void setup() {
+  size(1500, 1000);
+  String[] fontList = PFont.list();
+  printArray(fontList);
+  smooth();
+  img = loadImage("dash.jpg");
+
+  try {
+    mongoClient = new MongoClient(new ServerAddress(), Arrays.asList(credential));
+  } 
+  catch (java.net.UnknownHostException e) {
+    System.err.println("Connection failed: " + e);
+  }
+
+  DB db = mongoClient.getDB("MIDASDB");
+
+  Set<String> colls = db.getCollectionNames();
+  for (String s : colls) {
+    System.out.println(s);
+  }
+  DBCollection coll = db.getCollection("fuzzy_table");
+  DBCollection coll2 = db.getCollection("store_list");
+  DBCursor cursor = coll.find();
+  DBCursor cursor2 = coll2.find();
+  while (cursor.hasNext ()) {
+    //커서의 이름중에 Actual 값 컬럼 값만 출력
+    System.out.println(cursor.next().get("Actual"));
+  }
+  
+  while (cursor2.hasNext ()) {
+    //커서의 이름중에 sum 값 컬럼 값만 출력
+    System.out.println(cursor2.next().get("sum"));
+  }
+}
+
+void draw() {
+  background(255);
+  fill(0);
+  int s = second();
+  int m = minute();
+  int h = hour();
+
+  image(img, 0, 0, 1500, 1000);
+
+  int day = day();
+  int month = month();
+  int year = year();
+
+  String str = String.valueOf(day);
+
+  myFont = createFont("맑은 고딕 Bold", 27);
+  textFont(myFont);
+  fill(255);
+
+  text(year + "년 " + month + "월 " + day + "일", 1050, 50);
+  text(h + "시 " + m + "분 " + s + "초", 1270, 50);
+  
+  
+  DB db = mongoClient.getDB("MIDASDB");
+  DBCollection coll = db.getCollection("fuzzy_table");
+  DBCollection coll2 = db.getCollection("store_list");
+  DBCursor cursor = coll.find();
+  DBCursor cursor2 = coll2.find();
+  int i=0;
+  int a=1;
+  int b=1;
+  
+  while(cursor2.hasNext()){
+   ssum = cursor2.next().get("sum").toString();
+   text(ssum, 627, 809); 
+   //flush();
+  }
+  
+  //1,2번 출구
+  fill(242, 242, 242);
+  stroke(115, 109, 109);
+  rect(54, 729, 131, 201);
+  fill(#ff9900);
+  noStroke();
+  rect(55, 770, 130, 160);
+  fill(0);
+  text("63", 252, 809);
+  text("B", 260, 953);
+
+  //3,4번 출구
+  
+  fill(242, 242, 242);
+  stroke(115, 109, 109);
+  rect(429, 729, 131, 201);
+  
+  if(ssum.compareTo("75") >= 0){
+    fill(#ff0000);
+    noStroke();
+    rect(430, 730, 130, 200);
+    fill(0);
+    text("A", 635, 953);
+  }
+  
+  else if(ssum.compareTo("55") >= 0 && ssum.compareTo("75") < 0){
+    fill(#ff9900);
+    noStroke();
+    rect(430, 770, 130, 160);
+    fill(0);
+    text("B", 635, 953);
+  }
+  
+  else if(ssum.compareTo("35") >= 0 && ssum.compareTo("55") < 0){
+    fill(#ffff14);
+    noStroke();
+    rect(430, 810, 130, 120);
+    fill(0);
+    text("C", 635, 953);
+  }
+  
+  else if(ssum.compareTo("10") >= 0 && ssum.compareTo("35") < 0){
+    fill(#aaff34);
+    noStroke();
+    rect(430, 850, 130, 80);
+    fill(0);
+    text("D", 635, 953);
+  }
+  
+  else if(ssum.compareTo("1") >= 0 && ssum.compareTo("10") < 0){
+    fill(#0504ff);
+    noStroke();
+    rect(430, 890, 130, 40);
+    fill(0);
+    text("E", 635, 953);
+  }
+  
+  fill(0);
+  text(ssum, 627, 809);
+  //text("A", 635, 953);
+
+  //5번 출구
+  fill(242, 242, 242);
+  stroke(115, 109, 109);
+  rect(804, 729, 131, 201);
+  fill(#ffff14);
+  noStroke();
+  rect(805, 810, 130, 120);
+  fill(0);
+  text("47", 1010, 809);
+  text("C", 1010, 953);
+
+  //6번 출구
+  fill(242, 242, 242);
+  stroke(115, 109, 109);
+  rect(1179, 729, 131, 201);
+  fill(#0504aa);
+  noStroke();
+  rect(1180, 890, 130, 40);
+  fill(0);
+  text("8", 1385, 809);
+  text("E", 1385, 953);  
+}
