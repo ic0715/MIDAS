@@ -1,0 +1,47 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep  6 21:24:48 2018
+
+@author: cse125-2-31
+"""
+import serial
+import time
+
+str = 'bFCe'
+up = 0
+down = 0
+line = []
+
+port = 'COM3'
+ard = serial.Serial(port,9600)
+start_t = time.time()
+
+while True:
+    ard.flush()
+    
+    if(len(line) <= 10):
+        test = ard.readline().decode()
+        print(test)
+        line.append(test[:-2])
+    
+    print("=====line=====")
+    print(line)
+
+    tmp = len(line)
+    for i in range(1,tmp):
+
+        if(abs(ord(line[0])-ord(line[i])) == 31 or abs(ord(line[0])-ord(line[i])) == 33): 
+            if(ord('A') <= ord(line[0]) <= ord('H')):
+                up+=1
+            else:
+                down +=1
+            
+            print("=====erase=====")
+            print(line[0])
+            print(line[i])
+            line.pop(i)
+            line.pop(0)
+            break
+
+    print(up)
+    print(down)
